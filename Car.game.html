@@ -1,0 +1,229 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Master Car Racer (Offline)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    font-family:Arial;
+    color:white;
+    text-align:center;
+}
+
+#scoreBoard{
+    padding:10px;
+    font-size:18px;
+}
+
+#game{
+    width:320px;
+    height:520px;
+    background:#555;
+    margin:auto;
+    position:relative;
+    overflow:hidden;
+    border-radius:10px;
+    border:4px solid white;
+}
+
+/* Road line */
+.road{
+    width:6px;
+    height:60px;
+    background:white;
+    position:absolute;
+    left:157px;
+}
+
+/* PLAYER CAR (SVG IMAGE OFFLINE) */
+#player{
+    width:45px;
+    height:80px;
+    position:absolute;
+    bottom:20px;
+    left:140px;
+    background-image:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='45' height='80'>\
+<rect x='5' y='5' width='35' height='70' rx='8' fill='red'/>\
+<rect x='10' y='10' width='25' height='15' fill='black'/>\
+<circle cx='10' cy='65' r='4' fill='black'/>\
+<circle cx='35' cy='65' r='4' fill='black'/>\
+</svg>");
+    background-size:cover;
+}
+
+/* ENEMY CAR (SVG IMAGE OFFLINE) */
+.enemy{
+    width:45px;
+    height:80px;
+    position:absolute;
+    background-image:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='45' height='80'>\
+<rect x='5' y='5' width='35' height='70' rx='8' fill='yellow'/>\
+<rect x='10' y='10' width='25' height='15' fill='black'/>\
+<circle cx='10' cy='65' r='4' fill='black'/>\
+<circle cx='35' cy='65' r='4' fill='black'/>\
+</svg>");
+    background-size:cover;
+}
+
+/* Start screen */
+#start{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    font-size:22px;
+    cursor:pointer;
+}
+
+/* Touch buttons */
+.controls{
+    display:flex;
+    justify-content:space-around;
+    margin:10px;
+}
+
+.controls button{
+    width:120px;
+    height:60px;
+    font-size:26px;
+    border:none;
+    border-radius:12px;
+    background:#ff9800;
+}
+</style>
+</head>
+
+<body>
+
+<div id="scoreBoard">
+Score: <span id="score">0</span>
+</div>
+
+<div id="game">
+<div id="start">🚗 MASTER CAR RACER<br><br>TAP TO START</div>
+</div>
+
+<div class="controls">
+<button id="leftBtn">⬅</button>
+<button id="rightBtn">➡</button>
+</div>
+
+<script>
+const game = document.getElementById("game");
+const startScreen = document.getElementById("start");
+const scoreEl = document.getElementById("score");
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
+
+let player, speed, score, playing=false;
+let keys = {};
+let startX = 0;
+
+/* Keyboard */
+document.addEventListener("keydown", e => keys[e.key]=true);
+document.addEventListener("keyup", e => keys[e.key]=false);
+
+/* Touch buttons */
+leftBtn.ontouchstart = () => keys.ArrowLeft = true;
+leftBtn.ontouchend   = () => keys.ArrowLeft = false;
+rightBtn.ontouchstart= () => keys.ArrowRight = true;
+rightBtn.ontouchend  = () => keys.ArrowRight = false;
+
+/* Swipe control */
+game.addEventListener("touchstart", e=>{
+    startX = e.touches[0].clientX;
+});
+game.addEventListener("touchmove", e=>{
+    let diff = e.touches[0].clientX - startX;
+    if(diff > 30) keys.ArrowRight = true;
+    if(diff < -30) keys.ArrowLeft = true;
+});
+game.addEventListener("touchend", ()=>{
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+});
+
+startScreen.onclick = startGame;
+
+function startGame(){
+    game.innerHTML="";
+    game.appendChild(startScreen);
+    startScreen.style.display="none";
+
+    player=document.createElement("div");
+    player.id="player";
+    game.appendChild(player);
+
+    speed=4;
+    score=0;
+    playing=true;
+
+    for(let i=0;i<5;i++){
+        let r=document.createElement("div");
+        r.className="road";
+        r.style.top=i*120+"px";
+        game.appendChild(r);
+    }
+
+    for(let i=0;i<3;i++){
+        let e=document.createElement("div");
+        e.className="enemy";
+        e.style.left=Math.random()*260+"px";
+        e.style.top=-200*i+"px";
+        game.appendChild(e);
+    }
+
+    requestAnimationFrame(playGame);
+}
+
+function collide(a,b){
+    let r1=a.getBoundingClientRect();
+    let r2=b.getBoundingClientRect();
+    return !(r1.bottom<r2.top||r1.top>r2.bottom||r1.right<r2.left||r1.left>r2.right);
+}
+
+function playGame(){
+    if(!playing) return;
+
+    if(keys.ArrowLeft && player.offsetLeft>0)
+        player.style.left=player.offsetLeft-speed+"px";
+    if(keys.ArrowRight && player.offsetLeft<270)
+        player.style.left=player.offsetLeft+speed+"px";
+
+    document.querySelectorAll(".road").forEach(l=>{
+        l.style.top=l.offsetTop+speed+"px";
+        if(l.offsetTop>520) l.style.top="-60px";
+    });
+
+    document.querySelectorAll(".enemy").forEach(e=>{
+        e.style.top=e.offsetTop+speed+"px";
+        if(e.offsetTop>520){
+            e.style.top="-100px";
+            e.style.left=Math.random()*260+"px";
+            score++;
+            scoreEl.innerText=score;
+            if(score%10==0) speed++;
+        }
+        if(collide(player,e)){
+            playing=false;
+            startScreen.style.display="flex";
+            startScreen.innerHTML="💥 GAME OVER<br>Score: "+score+"<br><br>TAP TO RESTART";
+        }
+    });
+
+    requestAnimationFrame(playGame);
+}
+</script>
+
+</body>
+</html>
